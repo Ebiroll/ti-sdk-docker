@@ -1,0 +1,14 @@
+{
+  "name": "TI SDK Dev Container",
+  "image": "ghcr.io/ebiroll/ti-sdk-docker:latest",
+  "workspaceFolder": "/home/tisdk/ti",
+  "remoteUser": "tisdk",
+  "runArgs": [
+    "--env", "DISPLAY=${env:DISPLAY}",
+    "--volume", "/tmp/.X11-unix:/tmp/.X11-unix",
+    "--volume", "${localWorkspaceFolder}:/home/tisdk/ti"
+  ],
+  "updateRemoteUserUID": false,
+  "mounts": [],
+  "postCreateCommand": "echo 'Dev container ready.'"
+}
