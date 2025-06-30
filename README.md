@@ -19,19 +19,27 @@ docker run -it \
     ghcr.io/ebiroll/ti-sdk-docker:latest
 
     sudo chown -R tisdk:tisdk /home/tisdk/shared
-```
-
-
-Old version
-```
-docker volume create ti-shared
-docker run -it \
-    -v ti-shared:/home/tisdk/shared \
-    ghcr.io/ebiroll/ti-sdk-docker:latest /bin/bash
-
-    sudo chown -R tisdk:tisdk /home/tisdk/shared
     sudo chown -R tisdk:tisdk /home/tisdk/ti/
 ```
+
+
+
+
+### Building image
+
+In same directory as `Dockerfile`:
+
+```sh
+docker build -t ghcr.io/ebiroll/ti-sdk-docker:latest .
+```
+
+Push to Github, using classic Github token:
+
+```sh
+docker login ghcr.io -u your-github-user
+docker push ghcr.io/ebiroll/ti-sdk-docker:latest
+```
+
 
 ## Clone Hello Beagley
 
@@ -53,29 +61,13 @@ cd sdk_builder
 cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12
 make -f makefile.j722s
 
-~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12$ make -s -C  examples/hello_world/j722s-evm/ syscfg-gui
+~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12$ make -s -C  examples/hello_world/j722s-evm/c75ss0-0_freertos/ti-c7000 syscfg-gui
 ```
 
 
 
 
 
-
-
-### Building image
-
-In same directory as `Dockerfile`:
-
-```sh
-docker build -t ghcr.io/ebiroll/ti-sdk-docker:latest .
-```
-
-Push to Github, using classic Github token:
-
-```sh
-docker login ghcr.io -u your-github-user
-docker push ghcr.io/ebiroll/ti-sdk-docker:latest
-```
 
 ## Running TI Edge AI SDK on BeagleY-AI
 
