@@ -2,29 +2,79 @@
 
 [PROCESSOR-SDK-AM67A](https://www.ti.com/tool/PROCESSOR-SDK-AM67A) running on [TI Ubuntu](https://github.com/TexasInstruments/ti-docker-images)
 
+
+## This will install the tools required to buld a simple DSP app to be run on the beagley-ai
+
 ## Docker setup
 
 ### Running the image
 
-```sh
-docker run -it \
-    -v /Volumes/LinuxCS/code:/home/tisdk/shared \
-    ghcr.io/goat-hill/ti-sdk-docker:latest /bin/bash
+
 ```
+xhost +local:docker
+docker run -it \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /home/olof/shared:/home/tisdk/shared \
+    ghcr.io/ebiroll/ti-sdk-docker:latest
+
+    sudo chown -R tisdk:tisdk /home/tisdk/shared
+```
+
+
+Old version
+```
+docker volume create ti-shared
+docker run -it \
+    -v ti-shared:/home/tisdk/shared \
+    ghcr.io/ebiroll/ti-sdk-docker:latest /bin/bash
+
+    sudo chown -R tisdk:tisdk /home/tisdk/shared
+    sudo chown -R tisdk:tisdk /home/tisdk/ti/
+```
+
+## Clone Hello Beagley
+
+
+```
+ cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06
+ $ sdk_builder/scripts/setup_psdk_rtos.sh
+
+
+cd ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12/examples
+git clone https://github.com/Ebiroll/hello_beagley
+
+
+export PSDKR_PATH=${HOME}/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06
+cd ${PSDKR_PATH}
+./sdk_builder/scripts/setup_psdk_rtos.sh
+cd sdk_builder
+./make_sdk.sh
+cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12
+make -f makefile.j722s
+
+~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12$ make -s -C  examples/hello_world/j722s-evm/ syscfg-gui
+```
+
+
+
+
+
+
 
 ### Building image
 
 In same directory as `Dockerfile`:
 
 ```sh
-docker build -t ghcr.io/goat-hill/ti-sdk-docker:latest .
+docker build -t ghcr.io/ebiroll/ti-sdk-docker:latest .
 ```
 
 Push to Github, using classic Github token:
 
 ```sh
 docker login ghcr.io -u your-github-user
-docker push ghcr.io/goat-hill/ti-sdk-docker:latest
+docker push ghcr.io/ebiroll/ti-sdk-docker:latest
 ```
 
 ## Running TI Edge AI SDK on BeagleY-AI
