@@ -41,6 +41,10 @@ docker login ghcr.io -u your-github-user
 docker push ghcr.io/ebiroll/ti-sdk-docker:latest
 ```
 
+# Devcontainer
+On my machine it takes over an hour to add all SDK:s
+But you can add "image": "ghcr.io/ebiroll/ti-sdk-docker:latest", to devcontainer.json or where you keep your images.
+
 
 ## Clone Hello Beagley
 

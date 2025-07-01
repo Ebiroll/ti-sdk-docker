@@ -4,7 +4,6 @@
     "dockerfile": "../ti-processor-sdk-linux-edgeai-j722s-evm-11_00_00_08/Dockerfile",
     "context": "../ti-processor-sdk-linux-edgeai-j722s-evm-11_00_00_08"
   },
-  "image": "ghcr.io/ebiroll/ti-sdk-docker:latest",
   "workspaceFolder": "/home/tisdk/ti",
   "remoteUser": "tisdk",
   "runArgs": [
