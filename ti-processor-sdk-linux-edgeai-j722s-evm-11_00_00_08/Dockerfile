@@ -15,6 +15,10 @@ RUN apt-get update && \
 
 # Create install directory under /home/tisdk/ti
 RUN mkdir -p /home/tisdk/ti && chown -R tisdk:tisdk /home/tisdk/ti
+RUN mkdir -p /home/tisdk/ti/edgeai && chown -R tisdk:tisdk /home/tisdk/ti
+RUN mkdir -p /home/tisdk/ti/ti-cgt-c7000 && chown -R tisdk:tisdk /home/tisdk/ti
+RUN mkdir -p /home/tisdk/ti/sysconfig && chown -R tisdk:tisdk /home/tisdk/ti
+
 
 # ===== ARGs for downloading =====
 ARG SDK_INSTALLER_URL="https://dr-download.ti.com/software-development/software-development-kit-sdk/MD-NQjfZVt1aJ/11.00.00.08/ti-processor-sdk-linux-edgeai-j722s-evm-11_00_00_08-Linux-x86-Install.bin"

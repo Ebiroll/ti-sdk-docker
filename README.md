@@ -14,6 +14,7 @@
 xhost +local:docker
 docker run -it \
     -e DISPLAY=$DISPLAY \
+    --name my-ti-container \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v /home/olof/shared:/home/tisdk/shared \
     ghcr.io/ebiroll/ti-sdk-docker:latest
@@ -46,16 +47,21 @@ docker push ghcr.io/ebiroll/ti-sdk-docker:latest
 
 ```
  cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06
+ sudo  chown -R tisdk:tisdk /home/tisdk/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06
  $ sdk_builder/scripts/setup_psdk_rtos.sh
 
+# ERROR: The following packages were not installed:
+  libc6:i386
+  It should probably work anyways.
 
-cd ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12/examples
+cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12/examples
+sudo  chown -R tisdk:tisdk /home/tisdk/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12/
 git clone https://github.com/Ebiroll/hello_beagley
 
 
 export PSDKR_PATH=${HOME}/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06
 cd ${PSDKR_PATH}
-./sdk_builder/scripts/setup_psdk_rtos.sh
+./sdk_builder/scripts/setup_psdk_rtos.sh  #Unless done already
 cd sdk_builder
 ./make_sdk.sh
 cd ~/ti/ti-processor-sdk-rtos-j722s-evm-11_00_00_06/mcu_plus_sdk_j722s_11_00_00_12
@@ -66,7 +72,55 @@ make -f makefile.j722s
 
 
 
+## Regenerating  Hello beagly
 
+```
+If running make -s -C  examples/hello_world/j722s-evm/c75ss0-0_freertos/ti-c7000 syscfg-gui
+And pressing save generated we get the following difference
+
+Changes not staged for commit:
+        modified:   j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_dpl_config.c
+        modified:   j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_drivers_config.c
+
+The changes are most likely related to this. https://www.ti.com/tool/WHIS-3P-SAFERTOS
+
+
+diff --git a/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_dpl_config.c b/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_dpl_config.c
+index 0706904..3202c3b 100644
+--- a/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_dpl_config.c
++++ b/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ti_dpl_config.c
+@@ -37,6 +37,29 @@
+ #include <kernel/dpl/AddrTranslateP.h>
+ #include "ti_dpl_config.h"
+ #include "ti_drivers_config.h"
++#if defined(OS_SAFERTOS)
++#include "SafeRTOS_API.h"
++
++extern const xPORT_INIT_PARAMETERS xPortInit;
++
++portBaseType Dpl_kernelInit(void)
++{
++    portBaseType xInitSchedResult;
++
++    /* Initialise the kernel by passing in a pointer to the xPortInit structure
++     * and return the resulting error code. */
++    xInitSchedResult = xTaskInitializeScheduler( &xPortInit );
++
++    if( pdPASS == xInitSchedResult )
++    {
++#if ( configQUEUE_REGISTRY_SIZE > 0 )
++        vQueueAddToRegistry( acTimerCommandQueueBuffer, "Timer Command Q" );
++#endif
++    }
++
++    return xInitSchedResult;
++}
++#endif
+
+One thing to note about the hello_beagley vs hello_world is that I have tried to add IPC Support. 
+diff -urN  examples/hello_world/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/  examples/hello_beagley/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/
+
+```
 
 
 ## Running TI Edge AI SDK on BeagleY-AI
