@@ -285,6 +285,30 @@ Linker script uses:
 
 The linker script seems to be using the memory regions differently than what the DTS expects. 
 
+## Resource table in linux
+
+https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg2589080.html
+
+```
+// In ti_k3_dsp_remoteproc.c (now refactored to ti_k3_common.c)
+static struct resource_table *k3_get_loaded_rsc_table(struct rproc *rproc,
+                                                     size_t *rsc_table_sz)
+{
+    struct k3_rproc *kproc = rproc->priv;
+    
+    // Resource table is at the beginning of the first reserved memory region
+    *rsc_table_sz = 256; // Typical size
+    return (__force struct resource_table *)kproc->rmem[0].cpu_addr;
+}
+```
+
+The resource table must be:
+
+Placed in a specific section (.resource_table) in your DSP firmware
+Located at the beginning of the DDR memory region allocated for the DSP
+Properly formatted with the correct version and resource entries
+
+This is why your linker script needs the .resource_table section placed at C7X_RESOURCE_TABLE_BASE (0xA3100000 in your case), which should match the DTS memory allocation.
 
 ## Running TI Edge AI SDK on BeagleY-AI
 
