@@ -126,6 +126,165 @@ diff -urN  examples/hello_world/j722s-evm/c75ss0-0_freertos/ti-c7000/generated/ 
 
 ```
 
+## Ideas for IPC
+
+If we manage to align the carveouts, https://git.ti.com/cgit/ti-linux-kernel/ti-linux-kernel/tree/arch/arm64/boot/dts/ti/k3-am67a-beagley-ai.dts?h=11.00.09
+One day we might patch the hello world program to eomething like this,
+
+Looking at the device tree file, I can see the DMA carveout configurations are defined in the reserved-memory section. The DMA memory regions are configured as carveouts for each processor core (R5F, MCU R5F, Main R5F, and C7x DSPs) k3-am67a-beagley-ai.dts « ti « dts « boot « arm64 « arch - ti-linux-kernel/ti-linux-kernel - This repo contains a Linux kernel that has been integrated with outstanding TI open source patches based on the open source Linux kernel found at kernel.org. Contributions to this kernel need to be sent to the open source community for review..
+Here are the DMA carveout configurations:
+
+WKUP R5FSS0 Core0 DMA (lines 48-53):
+
+Location: 0xa0000000
+Size: 0x100000 (1MB)
+Type: shared-dma-pool
+
+
+MCU R5FSS0 Core0 DMA (lines 60-65):
+
+Location: 0xa1000000
+Size: 0x100000 (1MB)
+Type: shared-dma-pool
+
+
+Main R5FSS0 Core0 DMA (lines 72-77):
+
+Location: 0xa2000000
+Size: 0x100000 (1MB)
+Type: shared-dma-pool
+
+
+C7x_0 DMA (lines 84-89):
+
+Location: 0xa3000000
+Size: 0x100000 (1MB)
+Type: shared-dma-pool
+
+
+C7x_1 DMA (lines 96-101):
+
+Location: 0xa4000000
+Size: 0x100000 (1MB)
+Type: shared-dma-pool
+
+
+
+Each DMA region is paired with a larger memory region for the core itself (0xf00000 or 15MB).
+
+```
+
+#include <stdio.h>
+#include <kernel/dpl/DebugP.h>
+#include <drivers/ipc_notify.h>
+#include <drivers/ipc_rpmsg.h>
+#include "ti_drivers_config.h"
+#include "ti_drivers_open_close.h"
+#include "ti_board_open_close.h"
+
+void hello_world_main(void *args)
+{
+    int32_t status;
+    
+    /* Open drivers to open the UART driver for console */
+    Drivers_open();
+    Board_driversOpen();
+    
+    DebugP_log("Hello World!\r\n");
+    
+    /* Initialize IPC Notify */
+    status = IpcNotify_init();
+    if(status != SystemP_SUCCESS)
+    {
+        DebugP_log("IPC Notify init failed!\r\n");
+    }
+    else
+    {
+        DebugP_log("IPC Notify init done\r\n");
+    }
+    
+    /* Initialize IPC RPMessage */
+    status = IpcRPMessage_init();
+    if(status != SystemP_SUCCESS)
+    {
+        DebugP_log("IPC RPMessage init failed!\r\n");
+    }
+    else
+    {
+        DebugP_log("IPC RPMessage init done\r\n");
+        
+        /* Print IPC configuration */
+        DebugP_log("\r\n==== IPC Configuration ====\r\n");
+        DebugP_log("Self CPU ID: %d\r\n", IpcNotify_getSelfCoreId());
+        DebugP_log("Number of cores: %d\r\n", IpcNotify_getNumCores());
+        
+        /* Print available remote cores */
+        uint32_t numCores = IpcNotify_getNumCores();
+        uint32_t selfCoreId = IpcNotify_getSelfCoreId();
+        
+        DebugP_log("Remote cores available for IPC:\r\n");
+        for(uint32_t coreId = 0; coreId < numCores; coreId++)
+        {
+            if(coreId != selfCoreId)
+            {
+                if(IpcNotify_isCoreEnabled(coreId))
+                {
+                    DebugP_log("  - Core %d: Enabled\r\n", coreId);
+                }
+                else
+                {
+                    DebugP_log("  - Core %d: Disabled\r\n", coreId);
+                }
+            }
+        }
+        
+        /* Print shared memory configuration if needed */
+        DebugP_log("==========================\r\n\r\n");
+    }
+    
+    /* Cleanup */
+    Board_driversClose();
+    Drivers_close();
+}
+```
+
+## Fix link.cmd
+
+From calude 4 opus I get,
+Looking at your linker command file, there's a mismatch between the DMA carveout in the device tree and what's defined in the linker script.
+Device Tree (DTS) says:
+
+C7x_0 DMA memory region: 0xa3000000 with size 0x100000 (1MB)
+C7x_0 memory region: 0xa3100000 with size 0xf00000 (15MB)
+
+Linker script says:
+
+DDR0_ALLOCATED_START: 0xA3000000 (matches the DTS)
+C7X_IPC_D: starts at 0xA3000000, size 0x00100000 (1MB) - this matches
+C7X_BOOT_BASE: starts at 0xA3200000 (0xA3000000 + 0x00200000)
+C7X_DDR_SPACE: goes up to 0xA3410000 + 0x00BF0000 = 0xA4000000
+
+The issue is that the linker script allocates memory up to 0xA4000000, but according to the DTS, the C7x_0 memory region should only go up to 0xA3100000 + 0xF00000 = 0xA4000000.
+So technically they do align at the boundary, but there's a discrepancy in how the memory is being used:
+
+DTS expects:
+
+0xA3000000 - 0xA3100000: DMA region (1MB)
+0xA3100000 - 0xA4000000: Memory region (15MB)
+
+
+Linker script uses:
+
+0xA3000000 - 0xA3100000: IPC region (1MB)
+0xA3100000 - 0xA3100400: Resource table (1KB)
+0xA3100400 - 0xA3200000: IPC trace buffer (~1MB)
+0xA3200000 - 0xA3200400: Boot section
+0xA3400000 - 0xA4000000: Main memory sections
+
+
+
+The linker script seems to be using the memory regions differently than what the DTS expects. 
+
 
 ## Running TI Edge AI SDK on BeagleY-AI
 
