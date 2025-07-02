@@ -9,7 +9,7 @@
   "runArgs": [
     "--env", "DISPLAY=${env:DISPLAY}",
     "--volume", "/tmp/.X11-unix:/tmp/.X11-unix",
-    "--volume", "${localWorkspaceFolder}:/home/tisdk/ti"
+    "--volume", "${localWorkspaceFolder}:/home/tisdk/shared"
   ],
   "updateRemoteUserUID": false,
   "mounts": [],
